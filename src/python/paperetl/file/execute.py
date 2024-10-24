@@ -6,6 +6,8 @@ import gzip
 import os
 
 from multiprocessing import Process, Queue
+import psutil
+import json
 
 from ..factory import Factory
 
@@ -14,6 +16,9 @@ from .csvf import CSV
 from .pdf import PDF
 from .pmb import PMB
 from .tei import TEI
+
+import logging
+logging.getLogger(__name__)
 
 
 class Execute:
@@ -44,36 +49,36 @@ class Execute:
         )
 
     @staticmethod
-    def parse(path, source, extension, compress, config):
+    def parse(path, filename, extension, compress, config):
         """
         Parses articles from file at path.
 
         Args:
             path: path to input file
-            source: text string describing stream source
+            filename: text string describing stream source
             extension: data format
             config: path to config directory
         """
 
-        print(f"Processing: {path}")
+        logging.info(f"Processing: {path}")
 
         # Determine if file needs to be open in binary or text mode
-        mode = Execute.mode(source, extension)
+        mode = Execute.mode(filename, extension)
 
         with gzip.open(path, mode) if compress else open(
             path, mode, encoding="utf-8" if mode == "r" else None
         ) as stream:
             if extension == "pdf":
-                yield PDF.parse(stream, source)
+                yield PDF.parse(stream, filename, config)
             elif extension == "xml":
-                if source and source.lower().startswith("arxiv"):
-                    yield from ARX.parse(stream, source)
-                elif source and source.lower().startswith("pubmed"):
-                    yield from PMB.parse(stream, source, config)
+                if filename and filename.lower().startswith("arxiv"):
+                    yield from ARX.parse(stream, filename)
+                elif filename and filename.lower().startswith("pubmed"):
+                    yield from PMB.parse(stream, filename, config)
                 else:
-                    yield TEI.parse(stream, source)
+                    yield TEI.parse(stream, filename)
             elif extension == "csv":
-                yield from CSV.parse(stream, source)
+                yield from CSV.parse(stream, filename)
 
     @staticmethod
     def process(inputs, outputs):
@@ -90,7 +95,6 @@ class Execute:
             # Process until inputs queue is exhausted
             while not inputs.empty():
                 params = inputs.get()
-
                 for result in Execute.parse(*params):
                     outputs.put(result)
         finally:
@@ -161,7 +165,16 @@ class Execute:
                 db.save(result)
 
     @staticmethod
-    def run(indir, url, config=None, replace=False):
+    def least_used_cpus():
+        # Get per-core CPU utilization
+        cpu_usage = psutil.cpu_percent(percpu=True)
+        cpu_usage = list(zip(range(len(cpu_usage)), cpu_usage)) # Add core number
+        cpu_usage = sorted(cpu_usage, key=lambda x: x[1], reverse=True)
+        least_used_cpus = [x[0] for x in cpu_usage]
+        return least_used_cpus
+    
+    @staticmethod
+    def run(indir, url, dbname, config=None, replace=False):
         """
         Main execution method.
 
@@ -172,18 +185,30 @@ class Execute:
             replace: if true, a new database will be created, overwriting any existing database
         """
 
+        if config:
+            logging.info(f"Using config: {config}")
+            with open(config) as fd:
+                config = json.load(fd)
+            indir = config["indir"]
+            url = config["url"]
+            dbname = config["dbname"]
+            replace = config["replace"]
+
         # Build database connection
-        db = Factory.create(url, replace)
+        db = Factory.create(url, dbname, replace)
 
         # Create queues, limit size of output queue
         inputs, outputs = Queue(), Queue(30000)
 
         # Scan input directory and add files to inputs queue
         total = Execute.scan(indir, config, inputs)
-
+        
         # Start worker processes
         processes = []
-        for _ in range(min(total, os.cpu_count())):
+        num_workers = min(total, os.cpu_count())
+        worker_ids = Execute.least_used_cpus()[:num_workers]
+        logging.info(f"Starting {num_workers} processes on cpus: {worker_ids}")
+        for _ in worker_ids:
             process = Process(target=Execute.process, args=(inputs, outputs))
             process.start()
             processes.append(process)

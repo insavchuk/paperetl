@@ -8,6 +8,11 @@ import requests
 
 from .tei import TEI
 
+import time
+import shutil
+import os
+import logging
+logging.getLogger(__name__)
 
 class PDF:
     """
@@ -15,7 +20,7 @@ class PDF:
     """
 
     @staticmethod
-    def parse(stream, source):
+    def parse(stream, filename, config):
         """
         Parses a medical/scientific PDF datastream and returns a processed article.
 
@@ -29,9 +34,16 @@ class PDF:
 
         # Attempt to convert PDF to TEI XML
         xml = PDF.convert(stream)
-
+        logging.debug(xml.getvalue())
+        if config and config["xml_dir"]:
+            # Save XML file
+            filename = ".".join(filename.split(".")[:-1])
+            with open(os.path.join(config["xml_dir"], f'{filename}.xml'), 'w') as fd:
+                xml.seek(0)
+                shutil.copyfileobj(xml, fd)
+                xml.seek(0)
         # Parse and return object
-        return TEI.parse(xml, source) if xml else None
+        return TEI.parse(xml, filename) if xml else None
 
     @staticmethod
     def convert(stream):
@@ -44,15 +56,17 @@ class PDF:
         Returns:
             TEI XML stream
         """
-
+        logging.debug("Making GROBID API call")
         # Call GROBID API
         response = requests.post(
-            "http://localhost:8070/api/processFulltextDocument", files={"input": stream}
+            # replacing with the server
+            "http://10.0.161.181:8070/api/processFulltextDocument", files={"input": stream, "consolidateFunders": "1", "consolidateHeader": "1", "consolidateCitations": "1", "includeRawAffiliations": "1"}
         )
+        time.sleep(7) # wait until next grobid api call
 
         # Validate request was successful
         if not response.ok:
-            print(f"Failed to process file - {response.text}")
+            logging.info(f"Failed to process file - {response.text}")
             return None
 
         # Wrap as StringIO

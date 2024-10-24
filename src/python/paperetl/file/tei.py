@@ -7,6 +7,8 @@ import hashlib
 
 from bs4 import BeautifulSoup
 from dateutil import parser
+import nltk
+nltk.download('punkt_tab')
 from nltk.tokenize import sent_tokenize
 
 from ..schema.article import Article
@@ -162,8 +164,8 @@ class TEI:
 
             struct = soup.find("biblstruct")
             reference = (
-                "https://doi.org/" + struct.find("idno").text
-                if struct and struct.find("idno")
+                "https://doi.org/" + struct.find("idno", type="DOI").text
+                if struct and struct.find("idno", type="DOI")
                 else None
             )
         else:

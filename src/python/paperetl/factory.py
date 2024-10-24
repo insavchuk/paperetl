@@ -13,7 +13,7 @@ class Factory:
     """
 
     @staticmethod
-    def create(url, replace):
+    def create(url, dbname, replace):
         """
         Creates a new database connection.
 
@@ -33,6 +33,6 @@ class Factory:
             return YAML(url.replace("yaml://", ""))
         if url:
             # If URL is present, assume it's SQLite
-            return SQLite(url.replace("sqlite://", ""), replace)
+            return SQLite(url.replace("sqlite://", ""), dbname, replace)
 
         return None

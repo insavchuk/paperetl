@@ -9,6 +9,9 @@ from dateutil import parser
 
 from .database import Database
 
+import logging
+logging.getLogger(__name__)
+
 
 class SQLite(Database):
     """
@@ -68,7 +71,7 @@ class SQLite(Database):
     DELETE_ARTICLE = "DELETE FROM articles WHERE id = ?"
     DELETE_SECTIONS = "DELETE FROM sections WHERE article = ?"
 
-    def __init__(self, outdir, replace):
+    def __init__(self, outdir, dbname="articles.sqlite", replace=False):
         """
         Creates and initializes a new output SQLite database.
 
@@ -81,7 +84,7 @@ class SQLite(Database):
         os.makedirs(outdir, exist_ok=True)
 
         # Output database file
-        dbfile = os.path.join(outdir, "articles.sqlite")
+        dbfile = os.path.join(outdir, dbname)
 
         # Create flag
         create = replace or not os.path.exists(dbfile)
@@ -110,7 +113,8 @@ class SQLite(Database):
             self.execute(SQLite.CREATE_INDEX)
         else:
             # Restore section index id
-            self.sindex = int(self.cur.execute(SQLite.SECTION_COUNT).fetchone()[0]) + 1
+            index = self.cur.execute(SQLite.SECTION_COUNT).fetchone()[0]
+            self.sindex = int(index if index else 0) + 1
 
         # Start transaction
         self.cur.execute("BEGIN")
@@ -121,7 +125,7 @@ class SQLite(Database):
             # Increment number of articles processed
             self.aindex += 1
             if self.aindex % 1000 == 0:
-                print(f"Inserted {self.aindex} articles", end="\r")
+                logging.info(f"Inserted {self.aindex} articles", end="\r")
 
                 # Commit current transaction and start a new one
                 self.transaction()

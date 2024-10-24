@@ -99,75 +99,26 @@ This will bring up a paperetl command shell. Standard Docker commands can be use
 
 The following example shows how to use paperetl to load a set of medical/scientific articles into a SQLite database.
 
-1. Download the desired medical/scientific articles in a local directory. For this example, it is assumed the articles are in a directory named `paperetl/data`
+FOLDER STRUCTURE:
+paperetl
+├── configs - directory with json configurations for extraction
+├── db - OUTPUT directory with SQLite dbfiles of extracted text from publications
+├── logs - directory with logfiles
+├── pdfs - INPUT directory with pdf documents
+├── README.md
+├── setup.py
+├── src 
+├── test
+└── xml - directory with GROBID-extracted TEI files
 
-2. Build the database
+1. Download the desired medical/scientific articles in a local directory. For this example, it is assumed the articles are in a directory named `paperetl/pdfs`
 
-    ```
-    python -m paperetl.file paperetl/data paperetl/models
-    ```
+2. Adjust directories in the config file ./configs/ukdri.json.
 
-Once complete, there will be an articles.sqlite file in paperetl/models
-
-### Load into Elasticsearch
-
-Elasticsearch is also a supported datastore as shown below. This example assumes Elasticsearch is running locally, change the URL to a remote server as appropriate.
-
-```
-python -m paperetl.file paperetl/data http://localhost:9200
-```
-
-Once complete, there will be an articles index in Elasticsearch with the metadata and full text stored.
-
-### Convert articles to JSON/YAML
-
-paperetl can also be used to convert articles into JSON or YAML files. This is useful if the data is to be fed into another system or for manual inspection/debugging of a single file.
-
-JSON:
-
-```
-python -m paperetl.file paperetl/data json://paperetl/json
-```
-
-YAML:
-
-```
-python -m paperetl.file paperetl/data yaml://paperetl/yaml
-```
-
-Converted files will be stored in paperetl/(json|yaml)
-
-### Load CORD-19
-
-_Note: The final version of CORD-19 was released on 2022-06-22. But this is still a large, valuable set of medical documents._
-
-The following example shows how to use paperetl to load the CORD-19 dataset into a SQLite database.
-
-1. Download and extract the dataset from [Allen Institute for AI CORD-19 Release Page](https://ai2-semanticscholar-cord-19.s3-us-west-2.amazonaws.com/historical_releases.html).
+3. Build the database
 
     ```
-    scripts/getcord19.sh cord19/data
+    python -m paperetl.file ./configs/ukdri.json
     ```
 
-    The script above retrieves and unpacks the latest copy of CORD-19 into a directory named `cord19/data`. An optional second argument sets a specific date of the dataset in the format YYYY-MM-DD (ex. 2021-01-01) which defaults to the latest date.
-
-2. Generate entry-dates.csv for current version of the dataset
-
-    ```
-    python -m paperetl.cord19.entry cord19/data
-    ```
-
-    An optional second argument sets a specific date of the dataset in the format YYYY-MM-DD (ex. 2021-01-01) which defaults of the latest
-    date. This should match the date used in Step 1.
-
-3. Build database
-
-    ```
-    python -m paperetl.cord19 cord19/data cord19/models
-    ```
-
-    Once complete, there will be an articles.sqlite file in cord19/models. As with earlier examples, the data can also be loaded into Elasticsearch.
-
-    ```
-    python -m paperetl.cord19 cord19/data http://localhost:9200
-    ```
+Once complete, there will be a .sqlite file in paperetl/db

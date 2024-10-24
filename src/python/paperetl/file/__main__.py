@@ -6,8 +6,8 @@ import sys
 import logging
 import time
 import os
-logging.basicConfig(filename="/home/savchuki/projects/dzne-llm/text-extraction/logs/log.txt", level=logging.INFO)
-
+logging.basicConfig(filename="/home/savchuki/projects/dzne-llm/text-extraction/paperetl/logs/log.txt", level=logging.INFO)
+logging.info(f"Started {time.strftime('%Y-%m-%d %H:%M:%S')}")
 from .execute import Execute
 
 #indir, url, config=None, replace=False
@@ -31,3 +31,4 @@ if __name__ == "__main__":
             None, # keep config as None, originally sys.argv[3] if len(sys.argv) > 3 else None
             False, # keep replace as False, originally sys.argv[4] == "True" if len(sys.argv) > 4 else False
         )
+    logging.info(f"Finished {time.strftime('%Y-%m-%d %H:%M:%S')}")

@@ -33,7 +33,7 @@ class PDF:
         """
 
         # Attempt to convert PDF to TEI XML
-        xml = PDF.convert(stream)
+        xml = PDF.convert(stream, config)
         logging.debug(xml.getvalue())
         if config and config["xml_dir"]:
             # Save XML file
@@ -46,7 +46,7 @@ class PDF:
         return TEI.parse(xml, filename) if xml else None
 
     @staticmethod
-    def convert(stream):
+    def convert(stream, config):
         """
         Converts a medical/scientific article PDF into TEI XML via a GROBID Web Service API call.
 
@@ -60,7 +60,7 @@ class PDF:
         # Call GROBID API
         response = requests.post(
             # replacing with the server
-            "http://10.0.161.181:8070/api/processFulltextDocument", files={"input": stream, "consolidateFunders": "1", "consolidateHeader": "1", "consolidateCitations": "1", "includeRawAffiliations": "1"}
+            f"http://{config["host_port"]}/api/processFulltextDocument", files={"input": stream, "consolidateFunders": "1", "consolidateHeader": "1", "consolidateCitations": "1", "includeRawAffiliations": "1"}
         )
         time.sleep(7) # wait until next grobid api call
 

@@ -1,0 +1,9 @@
+{
+    "indir": "/home/savchuki/projects/dzne-llm/text-extraction/paperetl/pdfs/ukdri",
+    "url": "/home/savchuki/projects/dzne-llm/text-extraction/paperetl/db/",
+    "dbname": "ukdri.sqlite",
+    "logfile": "/home/savchuki/projects/dzne-llm/text-extraction/paperetl/logs/ukdri.log",
+    "xml_dir": "/home/savchuki/projects/dzne-llm/text-extraction/paperetl/xml/ukdri",
+    "replace": false,
+    "host_port": "10.0.161.181:8070"
+}
